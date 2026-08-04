@@ -8,14 +8,14 @@ Live: **https://voigtalani-maker.github.io/prelim-planner/**
 
 - Six weeks of the exam period, 17 August – 27 September 2026, one column per day.
 - **Exam papers fill themselves in** at their real session times — morning papers 08:00–10:00, afternoon papers 14:00–16:00. They show as solid dark blocks with a pastel edge in the subject's colour.
-- **Study time is suggested automatically** in every free hour, rotating two hours per subject through whichever papers are within the next fortnight. Suggestions are italic and dashed so they never get confused with a real exam.
+- **Study time is suggested automatically** in every free hour, rotating two hours per subject through whichever papers are within the next fortnight. All study blocks are italic so they never get confused with a real exam; suggestions are also dashed and lighter, while the ones you pick yourself are solid and bold.
 - **Breaks are built in** — 12:00, 19:00, and the hour straight after every paper.
 - Every non-exam hour is a dropdown: pick any subject, pick Break, or leave it free. Your choices override the suggestions and save automatically.
 - Days run 06:00–20:00, with Saturdays going through to 22:00.
 
 ## Using it
 
-Open the link, pick a week, and start planning. On a phone it shows one day at a time with a day picker; on a laptop you get the whole week side by side.
+Open the link, pick a week, and start planning. You always get the whole week — on a laptop it fits the screen, and on a phone you swipe the grid sideways while the hour column stays put. The day buttons above the grid jump you straight to a day.
 
 It installs as an app — "Add to Home Screen" on iOS, or the install icon in the address bar on desktop — and works offline once loaded.
 

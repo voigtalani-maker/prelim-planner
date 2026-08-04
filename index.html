@@ -129,6 +129,35 @@
     margin-top: 2px;
   }
 
+  /* ---- Week / Day toggle (mobile only) ---- */
+
+  .viewbar {
+    display: none;
+    margin-bottom: 12px;
+    border: 1px solid var(--color-divider);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    width: -moz-fit-content;
+    width: fit-content;
+  }
+
+  .view-btn {
+    font-family: var(--font-body);
+    font-size: 12.5px;
+    padding: 7px 20px;
+    border: none;
+    background: var(--color-bg);
+    color: var(--color-text);
+    cursor: pointer;
+  }
+
+  .view-btn + .view-btn { border-left: 1px solid var(--color-divider); }
+
+  .view-btn[aria-pressed="true"] {
+    background: var(--color-neutral-900);
+    color: var(--color-bg);
+  }
+
   /* ---- Day picker (mobile only) ---- */
 
   .days {
@@ -388,12 +417,28 @@
     .weeks { gap: 6px; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; }
     .week-btn { flex: 0 0 auto; padding: 7px 12px; }
     .days { display: flex; }
-    /* Whole week stays on the grid — narrower columns, swipe sideways. */
+    .viewbar { display: flex; }
+
+    /* Week view: all seven columns stay on the grid, swipe sideways. */
     .grid { grid-template-columns: 42px repeat(7, minmax(104px, 1fr)); min-width: 0; }
     .dayhead { padding: 8px 4px; }
     .dayhead .dh-weekday { font-size: 13px; }
     .cell-select, .exam-label { font-size: 11px; height: 32px; }
     .hourlabel { padding: 5px 5px 0 3px; font-size: 10px; }
+
+    /* Day view: one column, filling the screen, nothing to scroll. */
+    .grid.view-day { grid-template-columns: 46px 1fr; }
+    .grid.view-day .dayhead { padding: 10px 8px; }
+    .grid.view-day .cell-select,
+    .grid.view-day .exam-label { font-size: 13px; height: 34px; }
+    .grid.view-day .hourlabel { padding: 8px 8px 0 3px; font-size: 11px; }
+    .grid.view-day[data-active-day="0"] [data-day]:not([data-day="0"]),
+    .grid.view-day[data-active-day="1"] [data-day]:not([data-day="1"]),
+    .grid.view-day[data-active-day="2"] [data-day]:not([data-day="2"]),
+    .grid.view-day[data-active-day="3"] [data-day]:not([data-day="3"]),
+    .grid.view-day[data-active-day="4"] [data-day]:not([data-day="4"]),
+    .grid.view-day[data-active-day="5"] [data-day]:not([data-day="5"]),
+    .grid.view-day[data-active-day="6"] [data-day]:not([data-day="6"]) { display: none; }
   }
 
   @media print {
@@ -421,7 +466,11 @@
     </header>
 
     <div class="weeks" id="weeks" role="group" aria-label="Choose a week"></div>
-    <div class="days" id="days" role="group" aria-label="Jump to a day"></div>
+    <div class="viewbar" id="viewbar" role="group" aria-label="Show a whole week or one day">
+      <button type="button" class="view-btn" data-view="week">Week</button>
+      <button type="button" class="view-btn" data-view="day">Day</button>
+    </div>
+    <div class="days" id="days" role="group" aria-label="Days"></div>
 
     <div class="frame">
       <div class="grid" id="grid"></div>
@@ -460,6 +509,7 @@
   var WEEK_COUNT = 6;
   var DAY_MS = 86400000;
   var STORAGE_KEY = 'prelimStudyPlannerOverrides_v1';
+  var VIEW_KEY = 'prelimStudyPlannerView_v1';
 
   var PASTELS = ['#FFD6E0', '#FFE3C2', '#FFF3B0', '#D9F2D0', '#C6EDE3', '#C9E4FF', '#DAD6FF', '#F0D6FF',
                  '#FFD6F0', '#E4E0D6', '#FFC9B3', '#BEE9C9', '#BEDCFF', '#E3C6FF', '#FFC6DC', '#D8CBB8'];
@@ -601,12 +651,15 @@
   var state = {
     weekIndex: 0,
     dayIndex: 0,
+    view: 'week',        // 'week' or 'day' — only affects narrow screens
     overrides: {}
   };
 
   try {
     var raw = localStorage.getItem(STORAGE_KEY);
     if (raw) state.overrides = JSON.parse(raw) || {};
+    var savedView = localStorage.getItem(VIEW_KEY);
+    if (savedView === 'day' || savedView === 'week') state.view = savedView;
   } catch (e) { /* private mode, corrupt JSON — carry on with an empty plan */ }
 
   // Open on the week (and day) containing today, when the prelims are running.
@@ -641,6 +694,7 @@
   var daysEl = document.getElementById('days');
   var gridEl = document.getElementById('grid');
   var frameEl = document.querySelector('.frame');
+  var viewbarEl = document.getElementById('viewbar');
   var legendEl = document.getElementById('legend');
   var legendWrap = document.getElementById('legendWrap');
 
@@ -673,6 +727,16 @@
     frameEl.scrollLeft += offset - (gutter ? gutter.getBoundingClientRect().width : 0);
   }
 
+  // In day view this picks which day shows; in week view it scrolls to it.
+  function setActiveDay(idx) {
+    state.dayIndex = idx;
+    gridEl.setAttribute('data-active-day', String(idx));
+    [].forEach.call(daysEl.children, function (b, i) {
+      b.setAttribute('aria-pressed', String(i === idx));
+    });
+    if (state.view === 'week') scrollToDay(idx);
+  }
+
   function renderDays(weekDays) {
     daysEl.innerHTML = '';
     weekDays.forEach(function (d, idx) {
@@ -681,14 +745,14 @@
       btn.setAttribute('aria-pressed', String(idx === state.dayIndex));
       btn.appendChild(document.createTextNode(d.weekday));
       btn.appendChild(el('span', 'd-num', d.dateLabel));
-      btn.addEventListener('click', function () {
-        state.dayIndex = idx;
-        [].forEach.call(daysEl.children, function (b, i) {
-          b.setAttribute('aria-pressed', String(i === idx));
-        });
-        scrollToDay(idx);
-      });
+      btn.addEventListener('click', function () { setActiveDay(idx); });
       daysEl.appendChild(btn);
+    });
+  }
+
+  function renderViewbar() {
+    [].forEach.call(viewbarEl.children, function (b) {
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-view') === state.view));
     });
   }
 
@@ -722,6 +786,7 @@
 
   function renderGrid(weekDays) {
     gridEl.innerHTML = '';
+    gridEl.className = 'grid' + (state.view === 'day' ? ' view-day' : '');
     gridEl.setAttribute('data-active-day', String(state.dayIndex));
 
     var today = todayStr();
@@ -840,10 +905,20 @@
   function render() {
     var weekDays = ALL_DAYS.filter(function (d) { return d.weekIdx === state.weekIndex; });
     renderWeeks();
+    renderViewbar();
     renderDays(weekDays);
     renderGrid(weekDays);
     renderLegend(weekDays);
   }
+
+  [].forEach.call(viewbarEl.children, function (btn) {
+    btn.addEventListener('click', function () {
+      state.view = btn.getAttribute('data-view');
+      try { localStorage.setItem(VIEW_KEY, state.view); } catch (e) {}
+      render();
+      if (state.view === 'week') scrollToDay(state.dayIndex);
+    });
+  });
 
   document.getElementById('resetBtn').addEventListener('click', function () {
     if (!window.confirm('Clear every subject you picked and go back to the suggested plan?')) return;

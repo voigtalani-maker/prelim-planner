@@ -15,7 +15,14 @@ Live: **https://voigtalani-maker.github.io/prelim-planner/**
 
 ## Using it
 
-Open the link, pick a week, and start planning. You always get the whole week — on a laptop it fits the screen, and on a phone you swipe the grid sideways while the hour column stays put. The day buttons above the grid jump you straight to a day.
+Open the link, pick a week, and start planning. On a laptop the whole week fits the screen.
+
+On a phone you get a **Week / Day** toggle:
+
+- **Week** shows all seven days — swipe the grid sideways, and the hour column stays pinned so you never lose the times. The day buttons scroll you straight to a day.
+- **Day** gives one day at a time, filling the screen at a comfortable text size. The day buttons switch days.
+
+Whichever you pick is remembered for next time.
 
 It installs as an app — "Add to Home Screen" on iOS, or the install icon in the address bar on desktop — and works offline once loaded.
 

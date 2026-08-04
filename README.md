@@ -13,6 +13,16 @@ Live: **https://voigtalani-maker.github.io/prelim-planner/**
 - Every non-exam hour is a dropdown: pick any subject, pick Break, or leave it free. Your choices override the suggestions and save automatically.
 - Days run 06:00–20:00, with Saturdays going through to 22:00.
 
+## Hours per paper
+
+Below the grid is a panel for every paper where you can:
+
+- **Set a target** — how many hours you want to spend on that paper.
+- **See what you have planned** — hours you have assigned to it in the grid, against the target, with how many are still left to plan. Only hours you pick yourself count; a suggested block starts counting when you open it and choose **✓ Keep**.
+- **Drag the Studied bar** — log the hours you have actually done. This is tracked separately from what you planned, so you can see the difference between intending to study and having studied.
+
+At the top of the panel: total hours still to plan, total hours studied, and how many hours are **still free in the timetable** — everything from today onwards that isn't an exam, a break, or already planned. The hours before a morning paper are left out, since you'll be writing.
+
 ## Using it
 
 Open the link, pick a week, and start planning. On a laptop the whole week fits the screen.

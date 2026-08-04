@@ -1,5 +1,5 @@
 /* Prelim Study Planner — service worker (offline shell + installable) */
-const CACHE = 'prelim-v1';
+const CACHE = 'prelim-v2';
 const SHELL = [
   './', './index.html', './manifest.webmanifest',
   './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon-180.png'

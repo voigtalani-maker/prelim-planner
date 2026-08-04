@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prelim Study Planner</title>
+<meta name="description" content="Hour-by-hour prelim exam and study planner — CURRO IEB Preliminary Examinations 2026.">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#faf7f2">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Prelim Planner">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="apple-touch-icon-180.png">
+<link rel="icon" href="icon-192.png">
+<style>
+  :root {
+    --color-bg: #faf7f2;
+    --color-surface: #ffffff;
+    --color-text: #2a2724;
+    --color-neutral-100: #f0ebe3;
+    --color-neutral-300: #e2dad0;
+    --color-neutral-700: #7c736a;
+    --color-neutral-900: #2a2724;
+    --color-divider: #e2dad0;
+    --color-accent-700: #9a5b3f;
+    --font-heading: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+    --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --shadow-sm: 0 1px 2px rgba(42, 39, 36, 0.06), 0 4px 12px rgba(42, 39, 36, 0.04);
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    min-height: 100vh;
+    padding: 44px 40px calc(80px + env(safe-area-inset-bottom));
+  }
+
+  .shell { max-width: 1440px; margin: 0 auto; }
+
+  /* ---- Header ---- */
+
+  .masthead {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--color-divider);
+    padding-bottom: 18px;
+    margin-bottom: 22px;
+  }
+
+  .eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-neutral-700);
+    margin-bottom: 6px;
+  }
+
+  h1 {
+    font-family: var(--font-heading);
+    font-size: 38px;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  .standfirst {
+    margin: 0;
+    max-width: 380px;
+    text-align: right;
+    font-size: 13px;
+    color: var(--color-neutral-700);
+    line-height: 1.5;
+  }
+
+  /* ---- Week tabs ---- */
+
+  .weeks {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+
+  .week-btn {
+    font-family: var(--font-body);
+    font-size: 14px;
+    padding: 9px 16px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-divider);
+    background: var(--color-bg);
+    color: var(--color-text);
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .week-btn:hover { border-color: var(--color-neutral-700); }
+
+  .week-btn[aria-pressed="true"] {
+    background: var(--color-neutral-900);
+    border-color: var(--color-neutral-900);
+    color: var(--color-bg);
+  }
+
+  .week-btn .wk-label {
+    display: block;
+    font-family: var(--font-heading);
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .week-btn .wk-range {
+    display: block;
+    font-size: 11px;
+    opacity: 0.75;
+    margin-top: 2px;
+  }
+
+  /* ---- Day picker (mobile only) ---- */
+
+  .days {
+    display: none;
+    gap: 6px;
+    margin-bottom: 14px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .day-btn {
+    flex: 0 0 auto;
+    font-family: var(--font-body);
+    font-size: 13px;
+    padding: 7px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-divider);
+    background: var(--color-bg);
+    color: var(--color-text);
+    cursor: pointer;
+    text-align: center;
+    line-height: 1.3;
+  }
+
+  .day-btn[aria-pressed="true"] {
+    background: var(--color-neutral-900);
+    border-color: var(--color-neutral-900);
+    color: var(--color-bg);
+  }
+
+  .day-btn .d-num {
+    display: block;
+    font-size: 11px;
+    opacity: 0.75;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---- Grid ---- */
+
+  .frame {
+    border: 1px solid var(--color-divider);
+    border-radius: var(--radius-md);
+    overflow-x: auto;
+    background: var(--color-bg);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 60px repeat(7, minmax(126px, 1fr));
+    min-width: 1000px;
+  }
+
+  .corner { border-bottom: 1px solid var(--color-divider); }
+
+  .dayhead {
+    padding: 10px 8px;
+    text-align: center;
+    border-bottom: 1px solid var(--color-divider);
+    border-left: 1px solid var(--color-divider);
+  }
+
+  .dayhead .dh-weekday {
+    font-family: var(--font-heading);
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .dayhead .dh-date {
+    font-size: 11px;
+    color: var(--color-neutral-700);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .dayhead .dh-note {
+    font-size: 10px;
+    color: var(--color-accent-700);
+    margin-top: 2px;
+    font-weight: 600;
+  }
+
+  .dayhead.is-today .dh-weekday { color: var(--color-accent-700); }
+
+  .dayhead.is-today {
+    box-shadow: inset 0 3px 0 var(--color-accent-700);
+  }
+
+  .hourlabel {
+    padding: 5px 8px;
+    font-size: 11px;
+    color: var(--color-neutral-700);
+    text-align: right;
+    border-bottom: 1px solid var(--color-divider);
+    font-variant-numeric: tabular-nums;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+  }
+
+  .cell {
+    position: relative;
+    border-bottom: 1px solid var(--color-divider);
+    border-left: 1px solid var(--color-divider);
+    padding: 2px;
+  }
+
+  .cell.is-closed { background: var(--color-neutral-100); }
+
+  .cell.is-suggested { opacity: 0.85; }
+
+  .exam-label {
+    width: 100%;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--color-bg);
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0 3px;
+  }
+
+  .cell-select {
+    width: 100%;
+    height: 30px;
+    border: none;
+    background: transparent;
+    font-family: var(--font-body);
+    font-size: 11.5px;
+    color: var(--color-text);
+    cursor: pointer;
+    padding: 0 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    border-radius: 0;
+  }
+
+  .cell-select::-ms-expand { display: none; }
+
+  .cell-select:focus-visible {
+    outline: 2px solid var(--color-accent-700);
+    outline-offset: -2px;
+  }
+
+  .cell.is-suggested .cell-select { font-style: italic; }
+
+  .cell.is-chosen .cell-select { font-weight: 600; }
+
+  ::-webkit-scrollbar { height: 10px; }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-neutral-300);
+    border-radius: 5px;
+  }
+
+  /* ---- Legend + footnote ---- */
+
+  .legend-wrap { margin-top: 26px; }
+
+  .rule {
+    height: 1px;
+    background: var(--color-divider);
+    margin-bottom: 16px;
+  }
+
+  h2 {
+    font-family: var(--font-heading);
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0 0 12px;
+  }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    background: var(--color-neutral-900);
+    color: var(--color-bg);
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+
+  .chip .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+
+  .chip .when {
+    font-size: 11px;
+    font-weight: 500;
+    opacity: 0.7;
+  }
+
+  .footnote {
+    margin-top: 18px;
+    font-size: 11px;
+    color: var(--color-neutral-700);
+    line-height: 1.6;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .reset-btn {
+    font-family: var(--font-body);
+    font-size: 11px;
+    color: var(--color-neutral-700);
+    background: transparent;
+    border: 1px solid var(--color-divider);
+    border-radius: var(--radius-sm);
+    padding: 6px 12px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .reset-btn:hover {
+    border-color: var(--color-accent-700);
+    color: var(--color-accent-700);
+  }
+
+  /* ---- Mobile: one day at a time ---- */
+
+  @media (max-width: 760px) {
+    .page { padding: 24px 16px calc(56px + env(safe-area-inset-bottom)); }
+    h1 { font-size: 27px; }
+    .masthead { padding-bottom: 14px; margin-bottom: 16px; }
+    .standfirst { text-align: left; max-width: none; font-size: 12.5px; }
+    .weeks { gap: 6px; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; }
+    .week-btn { flex: 0 0 auto; padding: 7px 12px; }
+    .days { display: flex; }
+    .grid { grid-template-columns: 46px 1fr; min-width: 0; }
+    .frame { overflow-x: visible; }
+    .cell-select, .exam-label { font-size: 13px; height: 34px; }
+    .hourlabel { padding-top: 8px; }
+    .grid[data-active-day="0"] [data-day]:not([data-day="0"]),
+    .grid[data-active-day="1"] [data-day]:not([data-day="1"]),
+    .grid[data-active-day="2"] [data-day]:not([data-day="2"]),
+    .grid[data-active-day="3"] [data-day]:not([data-day="3"]),
+    .grid[data-active-day="4"] [data-day]:not([data-day="4"]),
+    .grid[data-active-day="5"] [data-day]:not([data-day="5"]),
+    .grid[data-active-day="6"] [data-day]:not([data-day="6"]) { display: none; }
+  }
+
+  @media print {
+    .weeks, .days, .reset-btn { display: none; }
+    .page { padding: 0; }
+    .frame { box-shadow: none; }
+    .grid { min-width: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <div class="shell">
+
+    <header class="masthead">
+      <div>
+        <div class="eyebrow">CURRO IEB &middot; Preliminary Examinations 2026</div>
+        <h1>Prelim Study Planner</h1>
+      </div>
+      <p class="standfirst">
+        Exam papers fill in automatically at their session times &mdash; pick a subject in any free hour to plan your
+        study, or change an exam block if it moves.
+      </p>
+    </header>
+
+    <div class="weeks" id="weeks" role="group" aria-label="Choose a week"></div>
+    <div class="days" id="days" role="group" aria-label="Choose a day"></div>
+
+    <div class="frame">
+      <div class="grid" id="grid"></div>
+    </div>
+
+    <div class="legend-wrap" id="legendWrap" hidden>
+      <div class="rule"></div>
+      <h2>This week&rsquo;s papers</h2>
+      <div class="legend" id="legend"></div>
+    </div>
+
+    <div class="footnote">
+      <div>
+        Your study choices are saved automatically on this device.<br>
+        <em>Italic, dashed</em> blocks are suggested study time with breaks built in &mdash; pick a different subject
+        (or Break) in any cell to override.
+      </div>
+      <button type="button" class="reset-btn" id="resetBtn">Clear my choices</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ---------- Configuration ---------- */
+
+  var DAY_START_HOUR = 6;
+  var DAY_END_HOUR = 22;      // capped to 20:00 on every day except Saturday
+  var SHOW_EXAM_BADGE = true;
+  var FIXED_BREAK_HOURS = [12, 19];
+  var LOOKAHEAD_DAYS = 14;    // only revise for papers this close
+  var START = Date.UTC(2026, 7, 17);  // Mon 17 Aug 2026 — first paper
+  var WEEK_COUNT = 6;
+  var DAY_MS = 86400000;
+  var STORAGE_KEY = 'prelimStudyPlannerOverrides_v1';
+
+  var PASTELS = ['#FFD6E0', '#FFE3C2', '#FFF3B0', '#D9F2D0', '#C6EDE3', '#C9E4FF', '#DAD6FF', '#F0D6FF',
+                 '#FFD6F0', '#E4E0D6', '#FFC9B3', '#BEE9C9', '#BEDCFF', '#E3C6FF', '#FFC6DC', '#D8CBB8'];
+
+  var SUBJECTS = [
+    { id: 'mathsP1',       label: 'Mathematics P1' },
+    { id: 'mathsP2',       label: 'Mathematics P2' },
+    { id: 'englishP1',     label: 'English FAL P1' },
+    { id: 'englishP2',     label: 'English FAL P2' },
+    { id: 'afrikaansP1',   label: 'Afrikaans Huistaal P1' },
+    { id: 'afrikaansP2',   label: 'Afrikaans Huistaal P2' },
+    { id: 'egdP1',         label: 'EGD P1' },
+    { id: 'egdP2',         label: 'EGD P2' },
+    { id: 'loCatB',        label: 'Life Orientation (LO)' },
+    { id: 'lifeSciP1',     label: 'Life Sciences P1' },
+    { id: 'lifeSciP2',     label: 'Life Sciences P2' },
+    { id: 'lifeSciPAT',    label: 'Life Sciences PAT' },
+    { id: 'catP1',         label: 'CAT P1 (Practical)' },
+    { id: 'catP2',         label: 'CAT P2 (Theory)' },
+    { id: 'mathLitPhysP1', label: 'Physical Sciences P1' },
+    { id: 'mathLitPhysP2', label: 'Physical Sciences P2' },
+    { id: 'physSciPAT',    label: 'Physical Science PAT' }
+  ];
+
+  SUBJECTS.forEach(function (s, i) { s.color = PASTELS[i % PASTELS.length]; });
+
+  var SUBJ_BY_ID = {};
+  SUBJECTS.forEach(function (s) { SUBJ_BY_ID[s.id] = s; });
+
+  // date -> { close?: true, sessions: [{ subj, hours: [start...] }] }
+  var EXAM_DATA = {
+    '2026-08-17': { sessions: [{ subj: 'mathsP1', hours: [8, 9, 10] }] },
+    '2026-08-18': { sessions: [{ subj: 'catP1', hours: [8, 9, 10] }, { subj: 'egdP1', hours: [14, 15, 16] }] },
+    '2026-08-19': { sessions: [] },
+    '2026-08-20': { sessions: [] },
+    '2026-08-21': { sessions: [] },
+    '2026-08-24': { sessions: [{ subj: 'mathLitPhysP1', hours: [8, 9, 10] }] },
+    '2026-08-25': { sessions: [{ subj: 'englishP1', hours: [8, 9, 10] }] },
+    '2026-08-26': { sessions: [] },
+    '2026-08-27': { sessions: [{ subj: 'lifeSciP1', hours: [8, 9, 10] }] },
+    '2026-08-28': { sessions: [] },
+    '2026-08-31': { sessions: [{ subj: 'mathsP2', hours: [8, 9, 10] }] },
+    '2026-09-01': { sessions: [] },
+    '2026-09-02': { sessions: [] },
+    '2026-09-03': { sessions: [{ subj: 'afrikaansP1', hours: [8, 9, 10] }] },
+    '2026-09-04': { sessions: [] },
+    '2026-09-07': { sessions: [{ subj: 'mathLitPhysP2', hours: [8, 9, 10] }] },
+    '2026-09-08': { sessions: [{ subj: 'englishP2', hours: [8, 9, 10] }] },
+    '2026-09-09': { sessions: [] },
+    '2026-09-10': { sessions: [{ subj: 'catP2', hours: [8, 9, 10] }] },
+    '2026-09-11': { sessions: [{ subj: 'afrikaansP2', hours: [8, 9, 10] }] },
+    '2026-09-14': { sessions: [{ subj: 'lifeSciP2', hours: [8, 9, 10] }] },
+    '2026-09-15': { sessions: [{ subj: 'loCatB', hours: [8, 9, 10] }, { subj: 'egdP2', hours: [14, 15, 16] }] },
+    '2026-09-16': { sessions: [{ subj: 'lifeSciPAT', hours: [8, 9, 10] }, { subj: 'physSciPAT', hours: [14, 15, 16] }] },
+    '2026-09-23': { close: true, sessions: [] }
+  };
+
+  /* ---------- Derived exam lookups ---------- */
+
+  var EXAM_MAP = {};              // 'YYYY-MM-DD_H' -> subject id
+  var EXAM_LIST = [];             // { date, subj, lastHour }
+
+  Object.keys(EXAM_DATA).sort().forEach(function (date) {
+    (EXAM_DATA[date].sessions || []).forEach(function (s) {
+      s.hours.forEach(function (h) { EXAM_MAP[date + '_' + h] = s.subj; });
+      EXAM_LIST.push({ date: date, subj: s.subj, lastHour: s.hours[s.hours.length - 1] });
+    });
+  });
+
+  var POST_EXAM_BREAK = {};       // the hour straight after a paper is always a break
+  EXAM_LIST.forEach(function (e) { POST_EXAM_BREAK[e.date + '_' + (e.lastHour + 1)] = true; });
+
+  function upcomingSubjectsForDate(dateStr) {
+    var t0 = Date.parse(dateStr + 'T00:00:00Z');
+    var seen = {};
+    var out = [];
+    EXAM_LIST.forEach(function (e) {
+      var t = Date.parse(e.date + 'T00:00:00Z');
+      if (t >= t0 && t <= t0 + LOOKAHEAD_DAYS * DAY_MS && !seen[e.subj]) {
+        seen[e.subj] = true;
+        out.push(e.subj);
+      }
+    });
+    return out;
+  }
+
+  /* ---------- Small helpers ---------- */
+
+  var WEEKDAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  var MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+
+  function fmtHour(h) { return pad2(h % 24) + ':00'; }
+
+  // Lighten a hex colour towards white by `ratio` (0 = untouched, 1 = white).
+  function mix(hex, ratio) {
+    var n = parseInt(hex.slice(1), 16);
+    var r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    return 'rgb(' + Math.round(r + (255 - r) * ratio) + ',' +
+                    Math.round(g + (255 - g) * ratio) + ',' +
+                    Math.round(b + (255 - b) * ratio) + ')';
+  }
+
+  function todayStr() {
+    var d = new Date();
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+  }
+
+  function el(tag, className, text) {
+    var n = document.createElement(tag);
+    if (className) n.className = className;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+
+  /* ---------- The six weeks of days ---------- */
+
+  var ALL_DAYS = [];
+  for (var i = 0; i < WEEK_COUNT * 7; i++) {
+    var d = new Date(START + i * DAY_MS);
+    var dateStr = d.getUTCFullYear() + '-' + pad2(d.getUTCMonth() + 1) + '-' + pad2(d.getUTCDate());
+    ALL_DAYS.push({
+      dateStr: dateStr,
+      weekday: WEEKDAY_NAMES[d.getUTCDay()],
+      dateLabel: MONTH_NAMES[d.getUTCMonth()] + ' ' + d.getUTCDate(),
+      weekIdx: Math.floor(i / 7),
+      close: !!(EXAM_DATA[dateStr] && EXAM_DATA[dateStr].close)
+    });
+  }
+
+  // Saturdays run late; every other day stops at 20:00.
+  function dayEndHour(weekday) {
+    return weekday === 'Sat' ? 22 : Math.min(DAY_END_HOUR, 20);
+  }
+
+  /* ---------- State ---------- */
+
+  var state = {
+    weekIndex: 0,
+    dayIndex: 0,
+    overrides: {}
+  };
+
+  try {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) state.overrides = JSON.parse(raw) || {};
+  } catch (e) { /* private mode, corrupt JSON — carry on with an empty plan */ }
+
+  // Open on the week (and day) containing today, when the prelims are running.
+  (function jumpToToday() {
+    var t = todayStr();
+    for (var i = 0; i < ALL_DAYS.length; i++) {
+      if (ALL_DAYS[i].dateStr === t) {
+        state.weekIndex = ALL_DAYS[i].weekIdx;
+        state.dayIndex = i % 7;
+        return;
+      }
+    }
+  })();
+
+  function setCell(key, value) {
+    // '' means "I want this hour empty" — distinct from "never touched".
+    state.overrides[key] = (value === '') ? '__free__' : value;
+    save();
+  }
+
+  function save() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.overrides));
+    } catch (e) {
+      console.warn('Could not save your plan:', e);
+    }
+  }
+
+  /* ---------- Rendering ---------- */
+
+  var weeksEl = document.getElementById('weeks');
+  var daysEl = document.getElementById('days');
+  var gridEl = document.getElementById('grid');
+  var legendEl = document.getElementById('legend');
+  var legendWrap = document.getElementById('legendWrap');
+
+  function renderWeeks() {
+    weeksEl.innerHTML = '';
+    for (var w = 0; w < WEEK_COUNT; w++) {
+      (function (w) {
+        var days = ALL_DAYS.filter(function (d) { return d.weekIdx === w; });
+        var btn = el('button', 'week-btn');
+        btn.type = 'button';
+        btn.setAttribute('aria-pressed', String(w === state.weekIndex));
+        btn.appendChild(el('span', 'wk-label', 'Week ' + (w + 1)));
+        btn.appendChild(el('span', 'wk-range', days[0].dateLabel + ' – ' + days[6].dateLabel));
+        btn.addEventListener('click', function () {
+          state.weekIndex = w;
+          state.dayIndex = 0;
+          render();
+        });
+        weeksEl.appendChild(btn);
+      })(w);
+    }
+  }
+
+  function renderDays(weekDays) {
+    daysEl.innerHTML = '';
+    weekDays.forEach(function (d, idx) {
+      var btn = el('button', 'day-btn');
+      btn.type = 'button';
+      btn.setAttribute('aria-pressed', String(idx === state.dayIndex));
+      btn.appendChild(document.createTextNode(d.weekday));
+      btn.appendChild(el('span', 'd-num', d.dateLabel));
+      btn.addEventListener('click', function () {
+        state.dayIndex = idx;
+        render();
+      });
+      daysEl.appendChild(btn);
+    });
+  }
+
+  function buildSelect(key, value, subj, isSuggested) {
+    var sel = el('select', 'cell-select');
+    sel.title = value === 'break' ? 'Break'
+              : subj ? subj.label + (isSuggested ? ' (suggested)' : '')
+              : 'Free';
+
+    var free = el('option', null, '— free —');
+    free.value = '';
+    sel.appendChild(free);
+
+    var brk = el('option', null, 'Break');
+    brk.value = 'break';
+    sel.appendChild(brk);
+
+    SUBJECTS.forEach(function (s) {
+      var o = el('option', null, s.label);
+      o.value = s.id;
+      sel.appendChild(o);
+    });
+
+    sel.value = value;
+    sel.addEventListener('change', function (e) {
+      setCell(key, e.target.value);
+      render();
+    });
+    return sel;
+  }
+
+  function renderGrid(weekDays) {
+    gridEl.innerHTML = '';
+    gridEl.setAttribute('data-active-day', String(state.dayIndex));
+
+    var today = todayStr();
+
+    gridEl.appendChild(el('div', 'corner'));
+
+    weekDays.forEach(function (d, idx) {
+      var head = el('div', 'dayhead' + (d.dateStr === today ? ' is-today' : ''));
+      head.setAttribute('data-day', String(idx));
+      head.appendChild(el('div', 'dh-weekday', d.weekday));
+      head.appendChild(el('div', 'dh-date', d.dateLabel));
+      if (d.close) head.appendChild(el('div', 'dh-note', 'Schools close'));
+      gridEl.appendChild(head);
+    });
+
+    var maxEnd = Math.max.apply(null, weekDays.map(function (d) { return dayEndHour(d.weekday); }));
+    var suggestSlot = {};   // per day: how many study hours placed since the last break
+
+    for (var h = DAY_START_HOUR; h < maxEnd; h++) {
+      gridEl.appendChild(el('div', 'hourlabel', fmtHour(h)));
+
+      weekDays.forEach(function (d, idx) {
+        var cell = el('div', 'cell');
+        cell.setAttribute('data-day', String(idx));
+
+        if (h >= dayEndHour(d.weekday)) {
+          cell.className = 'cell is-closed';
+          gridEl.appendChild(cell);
+          return;
+        }
+
+        var key = d.dateStr + '_' + h;
+        var examSubj = EXAM_MAP[key];
+        var ov = state.overrides[key];
+        var isFixedBreak = FIXED_BREAK_HOURS.indexOf(h) !== -1 || !!POST_EXAM_BREAK[key];
+
+        // Rotate through the papers coming up, two hours each, restarting after every break.
+        var suggestion = null;
+        if (!examSubj && !isFixedBreak) {
+          var upcoming = upcomingSubjectsForDate(d.dateStr);
+          if (upcoming.length) {
+            var slot = suggestSlot[d.dateStr] || 0;
+            suggestion = upcoming[Math.floor(slot / 2) % upcoming.length];
+            suggestSlot[d.dateStr] = slot + 1;
+          }
+        } else if (isFixedBreak) {
+          suggestSlot[d.dateStr] = 0;
+        }
+
+        var value = '';
+        var isSuggested = false;
+        if (ov === '__free__') value = '';
+        else if (ov) value = ov;
+        else if (examSubj) value = examSubj;
+        else if (isFixedBreak) value = 'break';
+        else if (suggestion) { value = suggestion; isSuggested = true; }
+
+        var isExam = SHOW_EXAM_BADGE && !ov && !!examSubj;
+        var isBreak = value === 'break';
+        var subj = (value && !isBreak) ? SUBJ_BY_ID[value] : null;
+
+        var bg = 'transparent';
+        if (isExam) bg = 'var(--color-neutral-900)';
+        else if (subj) bg = mix(subj.color, isSuggested ? 0.72 : 0.55);
+        else if (isBreak) bg = 'var(--color-neutral-100)';
+        cell.style.background = bg;
+
+        if (subj) {
+          cell.style.boxShadow = 'inset 3px 0 0 ' + subj.color;
+          if (isSuggested) {
+            cell.classList.add('is-suggested');
+            cell.style.outline = '1px dashed ' + subj.color;
+            cell.style.outlineOffset = '-3px';
+          } else {
+            cell.classList.add('is-chosen');
+          }
+        }
+
+        if (isExam) {
+          var label = el('div', 'exam-label', subj ? subj.label : '');
+          label.title = subj ? subj.label + ' — exam' : 'Exam';
+          cell.appendChild(label);
+        } else {
+          cell.appendChild(buildSelect(key, value, subj, isSuggested));
+        }
+
+        gridEl.appendChild(cell);
+      });
+    }
+  }
+
+  function renderLegend(weekDays) {
+    legendEl.innerHTML = '';
+    var seen = {};
+
+    weekDays.forEach(function (d) {
+      var data = EXAM_DATA[d.dateStr];
+      if (!data) return;
+      (data.sessions || []).forEach(function (s) {
+        if (seen[s.subj]) return;
+        seen[s.subj] = true;
+        var subj = SUBJ_BY_ID[s.subj];
+        var chip = el('div', 'chip');
+        var dot = el('span', 'dot');
+        dot.style.background = subj.color;
+        chip.appendChild(dot);
+        chip.appendChild(el('span', null, subj.label));
+        chip.appendChild(el('span', 'when', d.weekday + ' · ' + (s.hours[0] < 12 ? 'Morning' : 'Afternoon')));
+        legendEl.appendChild(chip);
+      });
+    });
+
+    legendWrap.hidden = legendEl.childElementCount === 0;
+  }
+
+  function render() {
+    var weekDays = ALL_DAYS.filter(function (d) { return d.weekIdx === state.weekIndex; });
+    renderWeeks();
+    renderDays(weekDays);
+    renderGrid(weekDays);
+    renderLegend(weekDays);
+  }
+
+  document.getElementById('resetBtn').addEventListener('click', function () {
+    if (!window.confirm('Clear every subject you picked and go back to the suggested plan?')) return;
+    state.overrides = {};
+    save();
+    render();
+  });
+
+  render();
+
+  /* ---------- Offline shell ---------- */
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').then(function (reg) { reg.update(); }).catch(function () {});
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (!window.__swReloaded) { window.__swReloaded = true; window.location.reload(); }
+      });
+    });
+  }
+})();
+</script>
+
+</body>
+</html>

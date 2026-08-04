@@ -604,6 +604,76 @@
 
   .done-value.is-met { color: var(--color-accent-700); font-weight: 600; }
 
+  /* Demarcation attachment, at the foot of each paper. */
+  .target-file {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 9px;
+    min-height: 24px;
+    font-size: 11.5px;
+  }
+
+  .file-input { display: none; }
+
+  .file-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .file-btn {
+    display: inline-block;
+    font-size: 11.5px;
+    color: var(--color-neutral-700);
+    background: transparent;
+    border: 1px dashed var(--color-divider);
+    border-radius: var(--radius-sm);
+    padding: 4px 10px;
+    cursor: pointer;
+  }
+
+  .file-btn:hover {
+    border-color: var(--color-accent-700);
+    color: var(--color-accent-700);
+  }
+
+  .file-link {
+    color: var(--color-text);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+
+  .file-link:hover { color: var(--color-accent-700); }
+
+  .file-size {
+    color: var(--color-neutral-700);
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .file-remove {
+    margin-left: auto;
+    flex-shrink: 0;
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1;
+    color: var(--color-neutral-700);
+    background: transparent;
+    border: none;
+    padding: 2px 5px;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+  }
+
+  .file-remove:hover { color: var(--color-accent-700); background: var(--color-neutral-100); }
+
   /* ---- Mobile: one day at a time ---- */
 
   @media (max-width: 760px) {
@@ -694,7 +764,8 @@
         yourself are counted &mdash; to count a suggested block, open it and choose <strong>&#10003; Keep</strong>.
         Drag the <strong>Studied</strong> bar to log the hours you have really done, which is tracked separately from
         what you have planned. Free hours count everything from today onwards that is not an exam, a break or already
-        planned &mdash; the hours before a morning paper are left out.
+        planned &mdash; the hours before a morning paper are left out. Attach each paper&rsquo;s demarcation at the
+        foot of its card; files stay on this device only.
       </p>
       <div class="targets" id="targets"></div>
     </div>
@@ -722,13 +793,18 @@
   var SHOW_EXAM_BADGE = true;
   var FIXED_BREAK_HOURS = [12, 19];
   var LOOKAHEAD_DAYS = 14;    // only revise for papers this close
-  var START = Date.UTC(2026, 7, 17);  // Mon 17 Aug 2026 — first paper
-  var WEEK_COUNT = 6;
+  // Starts a fortnight before the first paper (Mon 17 Aug) so the run-up is
+  // plannable too. Choices are keyed by date, so widening this keeps them all.
+  var START = Date.UTC(2026, 7, 3);   // Mon 3 Aug 2026
+  var WEEK_COUNT = 8;
   var DAY_MS = 86400000;
   var STORAGE_KEY = 'prelimStudyPlannerOverrides_v1';
   var VIEW_KEY = 'prelimStudyPlannerView_v1';
   var TARGETS_KEY = 'prelimStudyPlannerTargets_v1';
   var DONE_KEY = 'prelimStudyPlannerDone_v1';
+  var FILE_DB = 'prelimPlannerFiles';
+  var FILE_STORE = 'files';
+  var MAX_FILE_BYTES = 10 * 1024 * 1024;   // 10 MB per demarcation
   var NO_TARGET_SLIDER_MAX = 20;   // scale to drag against before a target is set
 
   var PASTELS = ['#FFD6E0', '#FFE3C2', '#FFF3B0', '#D9F2D0', '#C6EDE3', '#C9E4FF', '#DAD6FF', '#F0D6FF',
@@ -874,7 +950,8 @@
     view: 'week',        // 'week' or 'day' — only affects narrow screens
     overrides: {},
     targets: {},         // subject id -> hours she wants to spend on that paper
-    done: {}             // subject id -> hours she has actually studied
+    done: {},            // subject id -> hours she has actually studied
+    attachments: {}      // subject id -> { name, size, type, url } for the demarcation
   };
 
   try {
@@ -920,6 +997,100 @@
     } catch (e) {
       console.warn('Could not save your targets:', e);
     }
+  }
+
+  /* ---------- Demarcation files (IndexedDB — too big for localStorage) ---------- */
+
+  function openFileDb() {
+    return new Promise(function (resolve, reject) {
+      if (!window.indexedDB) { reject(new Error('IndexedDB unavailable')); return; }
+      var req = indexedDB.open(FILE_DB, 1);
+      req.onupgradeneeded = function () {
+        var db = req.result;
+        if (!db.objectStoreNames.contains(FILE_STORE)) db.createObjectStore(FILE_STORE, { keyPath: 'id' });
+      };
+      req.onsuccess = function () { resolve(req.result); };
+      req.onerror = function () { reject(req.error); };
+    });
+  }
+
+  function writeFileRecord(record) {
+    return openFileDb().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var tx = db.transaction(FILE_STORE, 'readwrite');
+        tx.objectStore(FILE_STORE).put(record);
+        tx.oncomplete = function () { resolve(); };
+        tx.onerror = function () { reject(tx.error); };
+        tx.onabort = function () { reject(tx.error); };
+      });
+    });
+  }
+
+  function removeFileRecord(id) {
+    return openFileDb().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var tx = db.transaction(FILE_STORE, 'readwrite');
+        tx.objectStore(FILE_STORE).delete(id);
+        tx.oncomplete = function () { resolve(); };
+        tx.onerror = function () { reject(tx.error); };
+      });
+    });
+  }
+
+  function readAllFileRecords() {
+    return openFileDb().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var tx = db.transaction(FILE_STORE, 'readonly');
+        var req = tx.objectStore(FILE_STORE).getAll();
+        req.onsuccess = function () { resolve(req.result || []); };
+        req.onerror = function () { reject(req.error); };
+      });
+    });
+  }
+
+  function formatBytes(n) {
+    if (n < 1024) return n + ' B';
+    if (n < 1024 * 1024) return Math.round(n / 1024) + ' KB';
+    return (n / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  function attachFile(subjId, file) {
+    return writeFileRecord({
+      id: subjId, name: file.name, type: file.type, size: file.size, blob: file, addedAt: Date.now()
+    }).then(function () {
+      var prev = state.attachments[subjId];
+      if (prev && prev.url) URL.revokeObjectURL(prev.url);
+      state.attachments[subjId] = {
+        name: file.name, size: file.size, type: file.type, url: URL.createObjectURL(file)
+      };
+      updateTargets();
+    });
+  }
+
+  function detachFile(subjId) {
+    return removeFileRecord(subjId).then(function () {
+      var prev = state.attachments[subjId];
+      if (prev && prev.url) URL.revokeObjectURL(prev.url);
+      delete state.attachments[subjId];
+      updateTargets();
+    });
+  }
+
+  // Object URLs are made once at start-up so each row can hold a real link,
+  // which opens in a new tab without tripping the pop-up blocker.
+  function loadAttachments() {
+    return readAllFileRecords().then(function (records) {
+      records.forEach(function (r) {
+        if (!r || !r.blob) return;
+        state.attachments[r.id] = {
+          name: r.name, size: r.size, type: r.type, url: URL.createObjectURL(r.blob)
+        };
+      });
+      renderTargets();
+      updateTargets();
+    }).catch(function (e) {
+      console.warn('Could not load saved demarcations:', e);
+    });
   }
 
   function saveDone() {
@@ -1262,6 +1433,33 @@
       doneRow.appendChild(doneValue);
       row.appendChild(doneRow);
 
+      var fileRow = el('div', 'target-file');
+      var fileLabel = el('label', 'file-btn', '📎 Add demarcation');
+      var fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.className = 'file-input';
+      fileInput.setAttribute('aria-label', 'Attach the demarcation for ' + s.label);
+      fileLabel.appendChild(fileInput);
+      var fileInfo = el('span', 'file-info');
+      fileRow.appendChild(fileLabel);
+      fileRow.appendChild(fileInfo);
+      row.appendChild(fileRow);
+
+      fileInput.addEventListener('change', function () {
+        var f = fileInput.files && fileInput.files[0];
+        fileInput.value = '';
+        if (!f) return;
+        if (f.size > MAX_FILE_BYTES) {
+          window.alert('That file is ' + formatBytes(f.size) +
+            '. Please attach something under ' + formatBytes(MAX_FILE_BYTES) + '.');
+          return;
+        }
+        attachFile(s.id, f).catch(function (e) {
+          console.warn('Could not save the demarcation:', e);
+          window.alert('Could not save that file on this device.');
+        });
+      });
+
       slider.addEventListener('input', function () {
         var n = parseInt(slider.value, 10);
         if (isNaN(n) || n <= 0) delete state.done[s.id];
@@ -1307,6 +1505,29 @@
           '%, var(--color-neutral-100) ' + pct + '%, var(--color-neutral-100) 100%)');
         doneValue.textContent = target ? studied + ' / ' + target + ' h' : studied + ' h';
         doneValue.className = 'done-value' + (target && studied >= target ? ' is-met' : '');
+
+        var att = state.attachments[s.id];
+        fileInfo.innerHTML = '';
+        fileLabel.style.display = att ? 'none' : '';
+        if (att) {
+          var link = el('a', 'file-link', '📎 ' + att.name);
+          link.href = att.url;
+          link.target = '_blank';
+          link.rel = 'noopener';
+          link.title = 'Open the demarcation for ' + s.label;
+          fileInfo.appendChild(link);
+          fileInfo.appendChild(el('span', 'file-size', formatBytes(att.size)));
+
+          var remove = el('button', 'file-remove', '×');
+          remove.type = 'button';
+          remove.title = 'Remove this demarcation';
+          remove.setAttribute('aria-label', 'Remove the demarcation for ' + s.label);
+          remove.addEventListener('click', function () {
+            if (!window.confirm('Remove the demarcation attached to ' + s.label + '?')) return;
+            detachFile(s.id).catch(function (e) { console.warn('Could not remove the file:', e); });
+          });
+          fileInfo.appendChild(remove);
+        }
       });
 
       targetsEl.appendChild(row);
@@ -1369,6 +1590,7 @@
   });
 
   render();
+  loadAttachments();
 
   /* ---------- Offline shell ---------- */
 
